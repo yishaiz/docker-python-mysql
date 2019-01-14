@@ -7,7 +7,6 @@ from wtforms.fields import RadioField, StringField, SubmitField
 from wtforms.validators import Required
 from guess import Guess, GuessError
 
-
 class Member:
     def __init__(self, email=None, member_type=None,
                  password_last_change_date=None, member_status=None):
@@ -19,6 +18,15 @@ class Member:
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+
+# USER = 'root'
+# PASSWORD = '12345'
+# HOSTNAME = 'mysql'
+# DATABASE = 'devopsloft'
+
+# app.config['SQLALCHEMY_DATABASE_URI'] = \
+#     'mysql://%s:%s@%s/%s' % (USER, PASSWORD, HOSTNAME, DATABASE)
+
 game = Guess('Python')
 game.expand('Python', 'C++', 'Is it interpreted?', False)
 game.expand('C++', 'Java', 'Does it run on a VM?', True)
@@ -44,12 +52,16 @@ def index():
     session['question'] = 0
     return render_template('index.html')
 
+@app.errorhandler(500)
+def internal_server_error(e):
+    print('error',e)
+    return render_template('error.html', error=e), 500
 
 @app.route('/db')
 def getDataFromDb():
     session['question'] = 0
 
-    connection_string = 'mysql+mysqlconnector://root:12345@1872b29e856f/devopsloft'
+    connection_string = 'mysql+mysqlconnector://root:12345@mysql/devopsloft'
 
     engine = db.create_engine(connection_string)
 
@@ -65,36 +77,10 @@ def getDataFromDb():
 
     result_set = filtered_result_proxy.fetchall()
 
+    print(result_set)
     return render_template('db.html', data=result_set[0][0])
 
 
-@app.route('/db2')
-def getDataFromDb2():
-    session['question'] = 0
-
-    connection_string = 'mysql+mysqlconnector://root:12345@1872b29e856f/devopsloft'
-                    # "connectionString": "server=db;port=3306;userid=dbuser;password=dbuserpassword;database=accountowner;"
-
-
-    engine = db.create_engine(connection_string)
-
-    connection = engine.connect()
-    metadata = db.MetaData()
-
-    users_table = db.Table(
-        'users', metadata, autoload=True, autoload_with=engine)
-
-    filtered_query = db.select([users_table])
-
-    filtered_result_proxy = connection.execute(filtered_query)
-
-    result_set = filtered_result_proxy.fetchall()
-
-    result = ""
-    for (record) in result_set:
-        result = result + " * * * " + record[0] + ", " + record[1] + ", " + record[1]
-    
-    return render_template('db.html', data = result)
 
 
 @app.route('/question', methods = ['GET', 'POST'])
